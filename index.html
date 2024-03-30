@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моделирование Затухающие колебания в LCR контуре.</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<h1>Моделирование Затухающие колебания в LCR контуре.</h1>
+
+<label for="induction">Индуктивность (Гн): </label>
+<input type="number" id="induction" step="0.1" value="1">
+
+<label for="capacity">Емкость (Ф): </label>
+<input type="number" id="capacity" step="0.1" value="1">
+
+<label for="resistance">Сопротивление (Ом): </label>
+<input type="number" id="resistance" step="0.1" value="1">
+
+<canvas id="myChart" width="400" height="200"></canvas>
+
+<script>
+    function calculateCharge(b, w, t){
+        return 1 * Math.exp(- b * t) * Math.cos(w * t)
+    }
+    function calculateCurrent(b, w, t) {
+        return -Math.exp(-b * t) * (b * Math.cos(w*t) + w*Math.sin(w*t));
+    }
+
+    function calculateB(R, L){
+        return L !== 0 ? R/(2*L) : 0
+    }
+
+    function calculateW(L, C, b){
+        return 1/L/C > b**2 && L !== 0 && C !== 0 ? Math.sqrt(1/L/C - b**2) : 0
+    }
+
+    function updateChart() {
+        const induction = parseFloat(document.getElementById('induction').value);
+        const capacity = parseFloat(document.getElementById('capacity').value);
+        const resistance = parseFloat(document.getElementById('resistance').value);
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+
+        const data = {
+            labels: [],
+            datasets: [{
+                label: 'Заряд (Кл)',
+                data: [],
+                fill: false,
+                borderColor: 'rgb(75, 192, 192)',
+                tension: 0.1
+            }, {
+                label: 'Сила тока (А)',
+                data: [],
+                fill: false,
+                borderColor: 'rgb(192,75,173)',
+                tension: 0.1
+            },
+                {
+                    label: 'Напряжение (В)',
+                    data: [],
+                    fill: false,
+                    borderColor: 'rgb(210,255,14)',
+                    tension: 0.1
+                }]
+        };
+
+        for (let time = 0; time <= 300; time += 0.5) {
+            data.labels.push(time.toFixed(4));
+            let b = calculateB(resistance, induction)
+
+            let w = calculateW(induction, capacity, b)
+            let charge = calculateCharge(b, w, time)
+            let current = calculateCurrent(b, w, time)
+
+            data.datasets[0].data.push(charge.toFixed(10) );
+            data.datasets[1].data.push(current.toFixed(10));
+            data.datasets[2].data.push((current * resistance).toFixed(10));
+
+        }
+
+        if (window.myLineChart) {
+            window.myLineChart.data = data;
+            window.myLineChart.update();
+        } else {
+            window.myLineChart = new Chart(ctx, {
+                type: 'line',
+                data: data,
+                options: {
+                    scales: {
+                        x: {
+                            type: 'linear',
+                            position: 'bottom',
+                            title: {
+                                display: true,
+                                text: 'Время (с)'
+                            }
+                        },
+                    }
+                }
+            });
+        }
+    }
+
+    document.getElementById('induction').addEventListener('input', updateChart);
+    document.getElementById('capacity').addEventListener('input', updateChart);
+    document.getElementById('resistance').addEventListener('input', updateChart);
+
+    updateChart();
+</script>
+</body>
+</html>
